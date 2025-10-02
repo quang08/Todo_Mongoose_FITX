@@ -5,9 +5,13 @@ const {
   createTodo,
   updateTodo,
   deleteTodo,
+  getTodosByUser,
 } = require("../controllers/todoControllers");
 
 const router = express.Router();
+
+router.get("/", getTodos); // ?completed=true&keyword=study
+router.get("/user/:id", getTodosByUser);
 
 router.get("/", getTodos);
 router.get("/:id", getTodoById);

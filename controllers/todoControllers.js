@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const Todo = require("../models/Todo");
+const User = require("../models/User");
 
 exports.getTodos = async (req, res) => {
   try {
@@ -72,5 +73,69 @@ exports.deleteTodo = async (req, res) => {
     res.status(204).send();
   } catch (err) {
     res.status(500).json({ message: err.message });
+  }
+};
+
+// GET /api/todos?completed=true&keyword=study
+exports.getTodos = async (req, res) => {
+  try {
+    const { completed, keyword } = req.query;
+    const filter = {};
+
+    if (completed !== undefined) {
+      filter.completed = completed === "true";
+    }
+
+    if (keyword) {
+      filter.title = { $regex: keyword, $options: "i" };
+    }
+
+    const todos = await Todo.find(filter)
+      .sort({ createdAt: -1 })
+      .populate("userId", "name email"); 
+
+    res.json(todos);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// GET /api/todos/user/:id
+exports.getTodosByUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid user id" });
+    }
+
+    const todos = await Todo.find({ userId: id })
+      .sort({ createdAt: -1 })
+      .populate("userId", "name email");
+
+    res.json(todos);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Create Todo with optional userId
+exports.createTodo = async (req, res) => {
+  try {
+    console.log("POST /api/todos body:", req.body);
+    const { title, userId } = req.body;
+
+    if (typeof title !== "string" || title.trim().length === 0) {
+      return res.status(400).json({ message: "title is required" });
+    }
+
+    if (userId && !mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ message: "Invalid userId" });
+    }
+
+    const todo = new Todo({ title, userId });
+    const saved = await todo.save();
+    res.status(201).json(saved);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
   }
 };
